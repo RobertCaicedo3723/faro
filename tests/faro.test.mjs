@@ -1,0 +1,26 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {date,addMonths,classify,analyze,tool,normalize,runAgent,RESERVE_MICRO} from '../lib/faro.mjs';
+const lot=(expiry,quantity=1)=>({expiry,quantity});
+test('fechas estrictas',()=>{for(const d of ['2026-02-30','x','2026-13-01','2026-1-01'])assert.throws(()=>date(d));assert.equal(date('2028-02-29').getUTCDate(),29);});
+test('meses calendario al fin de mes',()=>assert.equal(addMonths('2026-01-31',1).toISOString().slice(0,10),'2026-02-28'));
+for(const [expiry,status] of [['2026-10-13','vencido'],['2026-10-14','vencido'],['2026-10-15','cuarentena'],['2026-10-29','cuarentena'],['2026-10-30','rojo'],['2026-11-13','rojo'],['2026-11-14','amarillo'],['2027-01-13','amarillo'],['2027-01-14','verde'],['2027-03-13','verde'],['2027-03-14','normal'],[null,'sin_fecha']])test('umbral '+expiry,()=>assert.equal(classify(lot(expiry)).status,status));
+test('stock cero no apto',()=>assert.equal(classify(lot('2027-08-20',0)).eligible,false));
+test('cantidades inválidas',()=>{assert.throws(()=>classify(lot(null,-1)));assert.throws(()=>classify(lot(null,.5)));});
+test('datos independientes y estables',()=>{assert.equal(analyze().lots.length,12);assert.equal(analyze().counts.cuarentena,2);assert.equal(analyze().counts.vencido,1);});
+test('FEFO excluye cuarentena y vencidos',()=>{const r=tool('prioritize_fefo',{product:'aciclovir'},'2026-10-14');assert.equal(r.eligible.length,1);assert.equal(r.excluded.length,2);});
+test('búsqueda sin tildes',()=>assert.equal(normalize('CONDÓN'),'condon'));
+test('fuentes con página',()=>assert.equal(tool('search_reference',{query:'cuarentena'},'2026-10-14').sections[0].page,2));
+test('herramientas cerradas',()=>{assert.throws(()=>tool('execute_shell',{},'2026-10-14'));assert.throws(()=>tool('analyze_lots',{sql:'x'},'2026-10-14'));assert.throws(()=>tool('prioritize_fefo',{product:''},'2026-10-14'));});
+function setup(responses){let calls=0,settled;return {input:{prompt:'Revisa cuarentena',asOf:'2026-10-14',key:'test-not-a-real-key',reserve:async()=>true,settle:async(id,c)=>{settled=c;},fetcher:async(url,options)=>{calls++;assert.equal(url,'https://api.deepseek.com/chat/completions');const body=JSON.parse(options.body);assert.equal(body.thinking.type,'disabled');assert.equal(body.max_tokens,700);const r=responses.shift();if(r instanceof Error)throw r;return r;}},state:()=>({calls,settled})};}
+const r=(message,finish_reason='stop')=>Response.json({usage:{prompt_tokens:100,completion_tokens:100},choices:[{message,finish_reason}]});
+const call={role:'assistant',content:null,tool_calls:[{id:'c1',type:'function',function:{name:'analyze_lots',arguments:'{}'}}]};
+test('ciclo agéntico real con transporte sustituido solo en prueba',async()=>{const s=setup([r(call),r({content:'Borrador de revisión.'})]);const out=await runAgent(s.input);assert.equal(out.trace.length,1);assert.equal(s.state().calls,2);assert.equal(s.state().settled,300);});
+test('sin clave no factura',async()=>{const s=setup([]);await assert.rejects(()=>runAgent({...s.input,key:''}),/no está configurado/);assert.equal(s.state().calls,0);});
+test('sin presupuesto no llama API',async()=>{const s=setup([]);await assert.rejects(()=>runAgent({...s.input,reserve:async()=>false}),/Presupuesto/);assert.equal(s.state().calls,0);});
+test('error externo sin reintento conserva reserva',async()=>{const s=setup([new Response('',{status:401})]);await assert.rejects(()=>runAgent(s.input),/credencial/);assert.deepEqual(s.state(),{calls:1,settled:RESERVE_MICRO});});
+test('respuesta sin herramientas rechazada',async()=>{const s=setup([r({content:'Invento un análisis'})]);await assert.rejects(()=>runAgent(s.input),/sin respaldo/);});
+test('argumentos maliciosos no ejecutan acciones',async()=>{const s=setup([r({...call,tool_calls:[{id:'x',function:{name:'execute_shell',arguments:'{}'}}]})]);await assert.rejects(()=>runAgent(s.input),/no permitidos/);assert.equal(s.state().settled,RESERVE_MICRO);});
+test('respuesta truncada rechazada',async()=>{const s=setup([r(call,'length')]);await assert.rejects(()=>runAgent(s.input),/incompleta/);});
+test('máximo tres llamadas',async()=>{const s=setup([r(call),r(call),r(call)]);await assert.rejects(()=>runAgent(s.input),/Límite de herramientas/);assert.equal(s.state().calls,3);});
+test('credenciales en pregunta rechazadas',async()=>{const s=setup([]);await assert.rejects(()=>runAgent({...s.input,prompt:'sk-aaaaaaaaaaaaaaaaaaaaaa'}),/credenciales/);assert.equal(s.state().calls,0);});
