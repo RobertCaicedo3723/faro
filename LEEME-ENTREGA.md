@@ -19,11 +19,15 @@ Configurar una clave nueva de DeepSeek en `.dev.vars` (archivo privado ignorado)
 
 `node --test tests/faro.test.mjs`. Las pruebas sustituyen únicamente el transporte del proveedor: no consumen saldo y no prueban conectividad real. La integración real exige la clave privada y una consulta verificada.
 
+La conexión real ya se comprobó con dos consultas a DeepSeek y una descarga de evidencia desde el navegador. Ver `evidencias/VALIDACION.md`. Adicionalmente, `python -m unittest discover -s tests -p 'test_*.py'` verifica reservas concurrentes y controles de presupuesto.
+
 ## Gasto
 
 Tope global inicial US$0,50, reserva US$0,03 por ejecución, hasta tres solicitudes de 700 tokens de salida y 24.000 bytes de contexto cada una. No hay reintentos automáticos. Al completar, el contador usa tokens reportados y tarifa conservadora pico (entrada US$0,30 y salida US$1,20 por millón, consultada el 14-10-2026). Si falla, conserva la reserva completa. El cálculo es una estimación con tarifas configuradas, no una lectura del saldo del proveedor ni garantía frente a cambios de precio o usos externos de la clave.
 
 Los errores de infraestructura conservan reservas por seguridad. No borrar la base para recuperar presupuesto. Revisar la bitácora con el proveedor antes de un ajuste administrativo. Ningún endpoint de reinicio de presupuesto se expone al navegador.
+
+El entorno publicado comienza con BUDGET_BASELINE_MICRO=63119, que incluye US$0,003119 de consultas reales y US$0,06 de reservas conservadoras por fallos locales anteriores a la conexión. No son US$0,063119 facturados por DeepSeek. No utilizar en paralelo local y publicado para evitar contadores independientes con la misma clave.
 
 ## Entregables
 

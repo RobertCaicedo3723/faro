@@ -88,7 +88,7 @@ MANUAL=[
   ('Lectura de la revisión','Selecciona una fecha. El escenario inicial utiliza 14 octubre 2026. Los contadores y estados cambian con esa fecha. La tabla funciona sin modelo y no consume saldo. Busca por producto, categoría o lote. Los filtros combinan con la búsqueda, por lo que un producto puede quedar oculto por el estado seleccionado.'),
   ('Interpretación de estados','Vencido, cuarentena y sin fecha requieren atención antes de priorizar cualquier lote. El color nunca es el único indicador: cada estado tiene texto. El stock cero se conserva en el registro pero no se considera apto en FEFO. Los resultados son de práctica, no autorizaciones de entrega.'),
   ('Vista de trabajo','La tabla permite inspeccionar la evidencia antes de pedir una interpretación. El cuaderno del agente aparece al lado en escritorio y debajo en móvil.'),
-  ('@image','interfaz-escritorio.png')]),
+  ('@image','ilustracion-manual.png')]),
  ('Consulta al agente y evidencia',[
   ('Solicitudes recomendadas','Ejemplo 1: Revisa el inventario y prepara las acciones prioritarias, consultando el criterio de cuarentena.\nEjemplo 2: ¿Qué lotes de aciclovir prioriza FEFO y cuáles excluye?\nEjemplo 3: Consulta la fuente y explica la rutina mensual.'),
   ('Ejecución','Escribe una solicitud de hasta 1.000 caracteres y pulsa Ejecutar análisis. Espera a que termine. No existe reintento automático. El borrador aparece solo si el proveedor devuelve una conclusión válida respaldada por herramientas. Mientras procesa, la interfaz informa su estado.'),
