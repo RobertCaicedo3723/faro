@@ -63,3 +63,15 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+
+# Registro interno de operación y preparación de entregas.
+/PLAN-DISPONIBILIDAD.md
+/docs/OPERACION-SERVIDOR.md
+/scripts/empaquetar-rediseno.py
+/scripts/preparar-entrega-docente.py
+/scripts/preparar-word-docente.py
+/scripts/redisenar-entregas.py
+/scripts/redisenar-presentacion.mjs
+
+# Flujo opcional conservado localmente; la sesión actual no concede workflow.
+/.github/workflows/tests.yml
